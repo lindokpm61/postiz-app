@@ -2,28 +2,33 @@ services:
   postiz:
     image: 'ghcr.io/gitroomhq/postiz-app:v2.10.1'
     environment:
-      - SERVICE_URL_POSTIZ_5000
-      - 'MAIN_URL=${SERVICE_URL_POSTIZ}'
-      - 'FRONTEND_URL=${SERVICE_URL_POSTIZ}'
-      - 'NEXT_PUBLIC_BACKEND_URL=${SERVICE_URL_POSTIZ}/api'
+      # Use your real domain (most reliable in Coolify)
+      - 'MAIN_URL=https://postiz.keith-antony.com'
+      - 'FRONTEND_URL=https://postiz.keith-antony.com'
+      - 'NEXT_PUBLIC_BACKEND_URL=https://postiz.keith-antony.com/api'
+
       - 'JWT_SECRET=${SERVICE_PASSWORD_JWTSECRET}'
       - 'DATABASE_URL=postgresql://postgres:${SERVICE_PASSWORD_POSTGRESQL}@postgres:5432/${POSTGRESQL_DATABASE:-postiz-db}'
-      - 'REDIS_URL=redis://default:${SERVICE_PASSWORD_REDIS}@redis:6379'
+      - 'REDIS_URL=redis://:${SERVICE_PASSWORD_REDIS}@redis:6379'
       - 'BACKEND_INTERNAL_URL=http://localhost:3000'
+
       - 'CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}'
       - 'CLOUDFLARE_ACCESS_KEY=${CLOUDFLARE_ACCESS_KEY}'
-      - 'CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLARE_SECRET_ACCESS_KEY}'
+      - 'CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLLARE_SECRET_ACCESS_KEY}'
       - 'CLOUDFLARE_BUCKETNAME=${CLOUDFLARE_BUCKETNAME}'
       - 'CLOUDFLARE_BUCKET_URL=${CLOUDFLARE_BUCKET_URL}'
       - 'CLOUDFLARE_REGION=${CLOUDFLARE_REGION}'
+
       - 'STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}'
       - 'UPLOAD_DIRECTORY=${UPLOAD_DIRECTORY:-/uploads}'
       - 'NEXT_PUBLIC_UPLOAD_DIRECTORY=${NEXT_PUBLIC_UPLOAD_DIRECTORY:-/uploads}'
       - 'NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY=${NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY}'
+
       - 'RESEND_API_KEY=${RESEND_API_KEY}'
       - 'EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS}'
       - 'EMAIL_FROM_NAME=${EMAIL_FROM_NAME}'
       - 'EMAIL_PROVIDER=${EMAIL_PROVIDER}'
+
       - 'X_API_KEY=${SERVICE_X_API}'
       - 'X_API_SECRET=${SERVICE_X_SECRET}'
       - 'LINKEDIN_CLIENT_ID=${SERVICE_LINKEDIN_ID}'
@@ -42,8 +47,8 @@ services:
       - 'TIKTOK_CLIENT_SECRET=${SERVICE_TIKTOK_SECRET}'
       - 'PINTEREST_CLIENT_ID=${SERVICE_PINTEREST_ID}'
       - 'PINTEREST_CLIENT_SECRET=${SERVICE_PINTEREST_SECRET}'
-      - 'DRIBBBLE_CLIENT_ID=${SERVICE_DRIBBLE_ID}'
-      - 'DRIBBBLE_CLIENT_SECRET=${SERVICE_DRIBBLE_SECRET}'
+      - 'DRIBBBLE_CLIENT_ID=${SERVICE_DRIBBBLE_ID}'
+      - 'DRIBBBLE_CLIENT_SECRET=${SERVICE_DRIBBBLE_SECRET}'
       - 'DISCORD_CLIENT_ID=${SERVICE_DISCORD_ID}'
       - 'DISCORD_CLIENT_SECRET=${SERVICE_DISCORD_SECRET}'
       - 'DISCORD_BOT_TOKEN_ID=${SERVICE_DISCORD_TOKEN}'
@@ -57,29 +62,29 @@ services:
       - 'OPENAI_API_KEY=${SERVICE_OPENAI_KEY}'
       - 'NEXT_PUBLIC_DISCORD_SUPPORT=${NEXT_PUBLIC_DISCORD_SUPPORT}'
       - 'NEXT_PUBLIC_POLOTNO=${NEXT_PUBLIC_POLOTNO}'
-      - IS_GENERAL=true
+
+      - 'IS_GENERAL=true'
       - 'NX_ADD_PLUGINS=${NX_ADD_PLUGINS:-false}'
       - 'NOT_SECURED=${NOT_SECURED:-false}'
+
       - 'FEE_AMOUNT=${FEE_AMOUNT:-0.05}'
       - 'STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}'
       - 'STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}'
       - 'STRIPE_SIGNING_KEY=${STRIPE_SIGNING_KEY}'
       - 'STRIPE_SIGNING_KEY_CONNECT=${STRIPE_SIGNING_KEY_CONNECT}'
+
     volumes:
       - 'postiz_config:/config/'
       - 'postiz_uploads:/uploads/'
+
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    healthcheck:
-      test:
-        - CMD-SHELL
-        - 'wget -qO- http://127.0.0.1:5000/'
-      interval: 5s
-      timeout: 20s
-      retries: 10
+
+    # Removed the wget-based healthcheck (it commonly breaks routing in minimal images)
+
   postgres:
     image: 'postgres:14.5'
     volumes:
@@ -95,10 +100,9 @@ services:
       interval: 5s
       timeout: 20s
       retries: 10
+
   redis:
     image: 'redis:7.2'
-    environment:
-      - 'REDIS_PASSWORD=${SERVICE_PASSWORD_REDIS}'
     command: 'redis-server --requirepass ${SERVICE_PASSWORD_REDIS}'
     volumes:
       - 'postiz_redis_data:/data'
