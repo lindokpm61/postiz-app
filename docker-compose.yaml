@@ -2,7 +2,6 @@ services:
   postiz:
     image: 'ghcr.io/gitroomhq/postiz-app:v2.10.1'
     environment:
-      # Use your real domain (most reliable in Coolify)
       - 'MAIN_URL=https://postiz.keith-antony.com'
       - 'FRONTEND_URL=https://postiz.keith-antony.com'
       - 'NEXT_PUBLIC_BACKEND_URL=https://postiz.keith-antony.com/api'
@@ -14,7 +13,7 @@ services:
 
       - 'CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}'
       - 'CLOUDFLARE_ACCESS_KEY=${CLOUDFLARE_ACCESS_KEY}'
-      - 'CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLLARE_SECRET_ACCESS_KEY}'
+      - 'CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLARE_SECRET_ACCESS_KEY}'
       - 'CLOUDFLARE_BUCKETNAME=${CLOUDFLARE_BUCKETNAME}'
       - 'CLOUDFLARE_BUCKET_URL=${CLOUDFLARE_BUCKET_URL}'
       - 'CLOUDFLARE_REGION=${CLOUDFLARE_REGION}'
@@ -47,7 +46,7 @@ services:
       - 'TIKTOK_CLIENT_SECRET=${SERVICE_TIKTOK_SECRET}'
       - 'PINTEREST_CLIENT_ID=${SERVICE_PINTEREST_ID}'
       - 'PINTEREST_CLIENT_SECRET=${SERVICE_PINTEREST_SECRET}'
-      - 'DRIBBBLE_CLIENT_ID=${SERVICE_DRIBBBLE_ID}'
+      - 'DRIBBBLE_CLIENT_ID=${SERVICE_DRIBBLE_ID}'
       - 'DRIBBBLE_CLIENT_SECRET=${SERVICE_DRIBBBLE_SECRET}'
       - 'DISCORD_CLIENT_ID=${SERVICE_DISCORD_ID}'
       - 'DISCORD_CLIENT_SECRET=${SERVICE_DISCORD_SECRET}'
@@ -66,12 +65,14 @@ services:
       - 'IS_GENERAL=true'
       - 'NX_ADD_PLUGINS=${NX_ADD_PLUGINS:-false}'
       - 'NOT_SECURED=${NOT_SECURED:-false}'
-
       - 'FEE_AMOUNT=${FEE_AMOUNT:-0.05}'
       - 'STRIPE_PUBLISHABLE_KEY=${STRIPE_PUBLISHABLE_KEY}'
       - 'STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}'
       - 'STRIPE_SIGNING_KEY=${STRIPE_SIGNING_KEY}'
       - 'STRIPE_SIGNING_KEY_CONNECT=${STRIPE_SIGNING_KEY_CONNECT}'
+
+    ports:
+      - "5000:5000"
 
     volumes:
       - 'postiz_config:/config/'
@@ -82,8 +83,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-    # Removed the wget-based healthcheck (it commonly breaks routing in minimal images)
 
   postgres:
     image: 'postgres:14.5'
