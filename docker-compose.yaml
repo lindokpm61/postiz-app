@@ -1,33 +1,30 @@
 services:
   postiz:
-    image: 'ghcr.io/gitroomhq/postiz-app:v2.10.1'
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     environment:
       - 'MAIN_URL=https://postiz.keith-antony.com'
       - 'FRONTEND_URL=https://postiz.keith-antony.com'
       - 'NEXT_PUBLIC_BACKEND_URL=https://postiz.keith-antony.com/api'
-
       - 'JWT_SECRET=${SERVICE_PASSWORD_JWTSECRET}'
       - 'DATABASE_URL=postgresql://postgres:${SERVICE_PASSWORD_POSTGRESQL}@postgres:5432/${POSTGRESQL_DATABASE:-postiz-db}'
       - 'REDIS_URL=redis://:${SERVICE_PASSWORD_REDIS}@redis:6379'
       - 'BACKEND_INTERNAL_URL=http://localhost:3000'
-
       - 'CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}'
       - 'CLOUDFLARE_ACCESS_KEY=${CLOUDFLARE_ACCESS_KEY}'
       - 'CLOUDFLARE_SECRET_ACCESS_KEY=${CLOUDFLARE_SECRET_ACCESS_KEY}'
       - 'CLOUDFLARE_BUCKETNAME=${CLOUDFLARE_BUCKETNAME}'
       - 'CLOUDFLARE_BUCKET_URL=${CLOUDFLARE_BUCKET_URL}'
       - 'CLOUDFLARE_REGION=${CLOUDFLARE_REGION}'
-
       - 'STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}'
       - 'UPLOAD_DIRECTORY=${UPLOAD_DIRECTORY:-/uploads}'
       - 'NEXT_PUBLIC_UPLOAD_DIRECTORY=${NEXT_PUBLIC_UPLOAD_DIRECTORY:-/uploads}'
       - 'NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY=${NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY}'
-
       - 'RESEND_API_KEY=${RESEND_API_KEY}'
       - 'EMAIL_FROM_ADDRESS=${EMAIL_FROM_ADDRESS}'
       - 'EMAIL_FROM_NAME=${EMAIL_FROM_NAME}'
       - 'EMAIL_PROVIDER=${EMAIL_PROVIDER}'
-
       - 'X_API_KEY=${SERVICE_X_API}'
       - 'X_API_SECRET=${SERVICE_X_SECRET}'
       - 'LINKEDIN_CLIENT_ID=${SERVICE_LINKEDIN_ID}'
@@ -61,7 +58,6 @@ services:
       - 'OPENAI_API_KEY=${SERVICE_OPENAI_KEY}'
       - 'NEXT_PUBLIC_DISCORD_SUPPORT=${NEXT_PUBLIC_DISCORD_SUPPORT}'
       - 'NEXT_PUBLIC_POLOTNO=${NEXT_PUBLIC_POLOTNO}'
-
       - 'IS_GENERAL=true'
       - 'NX_ADD_PLUGINS=${NX_ADD_PLUGINS:-false}'
       - 'NOT_SECURED=${NOT_SECURED:-false}'
@@ -70,20 +66,16 @@ services:
       - 'STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}'
       - 'STRIPE_SIGNING_KEY=${STRIPE_SIGNING_KEY}'
       - 'STRIPE_SIGNING_KEY_CONNECT=${STRIPE_SIGNING_KEY_CONNECT}'
-
     ports:
-      - "5000:5000"
-
+      - '5000:5000'
     volumes:
       - 'postiz_config:/config/'
       - 'postiz_uploads:/uploads/'
-
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-
     healthcheck:
       test:
         - CMD-SHELL
@@ -98,7 +90,7 @@ services:
     volumes:
       - 'postiz_postgresql_data:/var/lib/postgresql/data'
     environment:
-      - POSTGRES_USER=postgres
+      - 'POSTGRES_USER=postgres'
       - 'POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRESQL}'
       - 'POSTGRES_DB=${POSTGRESQL_DATABASE:-postiz-db}'
     healthcheck:
@@ -124,3 +116,9 @@ services:
       interval: 5s
       timeout: 10s
       retries: 20
+
+volumes:
+  postiz_config:
+  postiz_uploads:
+  postiz_postgresql_data:
+  postiz_redis_data:
