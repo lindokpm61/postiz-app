@@ -139,6 +139,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+
   postiz-redis:
     image: redis:7.2
     container_name: postiz-redis
@@ -262,7 +263,8 @@ volumes:
 
 networks:
   postiz-network:
-    external: false
+    driver: bridge
+    name: postiz-network
   temporal-network:
     driver: bridge
     name: temporal-network
