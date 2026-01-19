@@ -112,7 +112,7 @@ services:
       - postiz-config:/config/
       - postiz-uploads:/uploads/
     ports:
-      - "4007:5000"
+      - "4007:3000"
     networks:
       - postiz-network
       - temporal-network
