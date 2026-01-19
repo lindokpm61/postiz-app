@@ -1,6 +1,8 @@
 services:
   postiz:
     image: ghcr.io/gitroomhq/postiz-app:latest
+    labels:
+    - "traefik.http.services.postiz.loadbalancer.server.port=3000"
     container_name: postiz
     restart: always
     environment:
