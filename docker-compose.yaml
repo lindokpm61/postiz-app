@@ -141,4 +141,46 @@ services:
     networks:
       - coolify
 
-  temp
+  temporal-postgresql:
+    image: postgres:13-alpine
+    container_name: temporal-postgresql
+    restart: always
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: temporal
+      POSTGRES_DB: temporal
+    volumes:
+      - temporal-postgres-data:/var/lib/postgresql/data
+    networks:
+      - coolify
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  temporal-elasticsearch:
+    image: elasticsearch:7.17.10
+    container_name: temporal-elasticsearch
+    restart: always
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - temporal-elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - coolify
+
+volumes:
+  postiz-config:
+  postiz-uploads:
+  postgres-volume:
+  postiz-redis-data:
+  temporal-postgres-data:
+  temporal-elasticsearch-data:
+
+networks:
+  coolify:
+    external: true
