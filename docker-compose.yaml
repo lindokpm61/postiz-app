@@ -1,3 +1,4 @@
+name: postiz
 services:
   postiz:
     image: ghcr.io/gitroomhq/postiz-app:v2.12.1
@@ -10,12 +11,9 @@ services:
       DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
       REDIS_URL: "redis://postiz-redis:6379"
       BACKEND_INTERNAL_URL: "http://localhost:3000"
-
-      # Temporal
       TEMPORAL_ADDRESS: "temporal:7233"
       RUN_CRON: "true"
       IS_GENERAL: "true"
-
       STORAGE_PROVIDER: "local"
       UPLOAD_DIRECTORY: "/uploads"
       NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
@@ -37,7 +35,7 @@ services:
       - "traefik.http.routers.postiz.tls.certresolver=letsencrypt"
       - "traefik.http.services.postiz.loadbalancer.server.port=5000"
     networks:
-      coolify: {}
+      - coolify
 
   postiz-postgres:
     image: postgres:17-alpine
@@ -54,7 +52,7 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      coolify: {}
+      - coolify
 
   postiz-redis:
     image: redis:7.2
@@ -67,9 +65,8 @@ services:
       timeout: 3s
       retries: 10
     networks:
-      coolify: {}
+      - coolify
 
-  # Writes Temporal dynamic config into a named volume (MUST be valid YAML)
   temporal-dynamicconfig-init:
     image: alpine:3.20
     restart: "no"
@@ -83,14 +80,11 @@ frontend.enableUpdateWorkflowExecution:
     constraints: {}
 YAML
       echo "Wrote dynamic config:"
-      echo "--------------------------------"
       cat /etc/temporal/config/dynamicconfig/development-sql.yaml
-      echo "--------------------------------"
-      ls -la /etc/temporal/config/dynamicconfig
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
     networks:
-      coolify: {}
+      - coolify
 
   temporal-elasticsearch:
     image: elasticsearch:7.17.27
@@ -102,7 +96,7 @@ YAML
     volumes:
       - temporal-es-data:/usr/share/elasticsearch/data
     networks:
-      coolify: {}
+      - coolify
 
   temporal-postgresql:
     image: postgres:16
@@ -118,7 +112,7 @@ YAML
       timeout: 3s
       retries: 10
     networks:
-      coolify: {}
+      - coolify
 
   temporal:
     image: temporalio/auto-setup:1.28.1
@@ -145,7 +139,6 @@ YAML
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig:ro
     healthcheck:
-      # Basic TCP check without needing curl/nc inside the image
       test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/7233'"]
       interval: 10s
       timeout: 3s
@@ -167,7 +160,7 @@ YAML
     stdin_open: true
     tty: true
     networks:
-      coolify: {}
+      - coolify
 
 volumes:
   postgres-volume:
