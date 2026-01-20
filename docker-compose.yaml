@@ -6,7 +6,7 @@ services:
       MAIN_URL: "https://postiz.keith-antony.com"
       FRONTEND_URL: "https://postiz.keith-antony.com"
       NEXT_PUBLIC_BACKEND_URL: "https://postiz.keith-antony.com/api"
-      JWT_SECRET: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE"
+      JWT_SECRET: "kjabdckbkco8rrnc909uimckc8"
       DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
       REDIS_URL: "redis://postiz-redis:6379"
       BACKEND_INTERNAL_URL: "http://localhost:3000"
