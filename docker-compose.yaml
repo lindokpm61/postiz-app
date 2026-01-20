@@ -78,15 +78,17 @@ services:
   temporal-dynamicconfig-init:
     image: alpine:3.20
     restart: "no"
-    command: >
-      sh -lc "
-        mkdir -p /etc/temporal/config/dynamicconfig &&
-        cat > /etc/temporal/config/dynamicconfig/development-sql.yaml <<'YAML'
-frontend.enableUpdateWorkflowExecution:
-  - value: true
-    constraints: {}
-YAML
-      "
+    entrypoint: ["/bin/sh", "-lc"]
+    command: |
+      set -e
+      mkdir -p /etc/temporal/config/dynamicconfig
+      cat > /etc/temporal/config/dynamicconfig/development-sql.yaml <<'YAML'
+      frontend.enableUpdateWorkflowExecution:
+        - value: true
+          constraints: {}
+      YAML
+      echo "Wrote /etc/temporal/config/dynamicconfig/development-sql.yaml"
+      ls -la /etc/temporal/config/dynamicconfig
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
     networks:
@@ -145,14 +147,15 @@ YAML
       - ES_VERSION=v7
       - TEMPORAL_NAMESPACE=default
 
-      # <-- THIS is the key line
+      # Dynamic config
       - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/development-sql.yaml
+      - DYNAMIC_CONFIG_FILE_POLL_INTERVAL=10s
     networks:
       - temporal-network
     expose:
       - "7233"
     volumes:
-      - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+      - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig:ro
 
   temporal-admin-tools:
     image: temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1
