@@ -75,10 +75,10 @@ services:
       set -e
       mkdir -p /etc/temporal/config/dynamicconfig
       cat > /etc/temporal/config/dynamicconfig/development-sql.yaml <<'YAML'
-frontend.enableUpdateWorkflowExecution:
-  - value: true
-    constraints: {}
-YAML
+      frontend.enableUpdateWorkflowExecution:
+        - value: true
+          constraints: {}
+      YAML
       echo "Wrote dynamic config:"
       cat /etc/temporal/config/dynamicconfig/development-sql.yaml
     volumes:
