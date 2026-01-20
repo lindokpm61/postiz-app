@@ -28,7 +28,7 @@ services:
       postiz-redis:
         condition: service_healthy
       temporal:
-        condition: service_started
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`)"
@@ -69,6 +69,7 @@ services:
     networks:
       coolify: {}
 
+  # Writes Temporal dynamic config into a named volume (MUST be valid YAML)
   temporal-dynamicconfig-init:
     image: alpine:3.20
     restart: "no"
@@ -77,11 +78,14 @@ services:
       set -e
       mkdir -p /etc/temporal/config/dynamicconfig
       cat > /etc/temporal/config/dynamicconfig/development-sql.yaml <<'YAML'
-      frontend.enableUpdateWorkflowExecution:
-        - value: true
-          constraints: {}
-      YAML
-      echo "Wrote /etc/temporal/config/dynamicconfig/development-sql.yaml"
+frontend.enableUpdateWorkflowExecution:
+  - value: true
+    constraints: {}
+YAML
+      echo "Wrote dynamic config:"
+      echo "--------------------------------"
+      cat /etc/temporal/config/dynamicconfig/development-sql.yaml
+      echo "--------------------------------"
       ls -la /etc/temporal/config/dynamicconfig
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
@@ -140,6 +144,12 @@ services:
       - DYNAMIC_CONFIG_FILE_POLL_INTERVAL=10s
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    healthcheck:
+      # Basic TCP check without needing curl/nc inside the image
+      test: ["CMD-SHELL", "bash -lc 'exec 3<>/dev/tcp/127.0.0.1/7233'"]
+      interval: 10s
+      timeout: 3s
+      retries: 20
     networks:
       coolify:
         aliases:
@@ -149,7 +159,8 @@ services:
     image: temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1
     restart: always
     depends_on:
-      - temporal
+      temporal:
+        condition: service_healthy
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CLI_ADDRESS=temporal:7233
