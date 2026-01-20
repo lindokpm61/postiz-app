@@ -6,16 +6,16 @@ services:
       MAIN_URL: "https://postiz.keith-antony.com"
       FRONTEND_URL: "https://postiz.keith-antony.com"
       NEXT_PUBLIC_BACKEND_URL: "https://postiz.keith-antony.com/api"
-      JWT_SECRET: "kjhcojcjkl7jlj0lholj9jpcdpmcmc"
+      JWT_SECRET: "CHANGE_ME_TO_A_LONG_RANDOM_VALUE"
       DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
       REDIS_URL: "redis://postiz-redis:6379"
       BACKEND_INTERNAL_URL: "http://localhost:3000"
 
-      # ✅ required for newer Postiz
+      # Required for newer Postiz
       TEMPORAL_ADDRESS: "temporal:7233"
       RUN_CRON: "true"
       IS_GENERAL: "true"
-      # DISABLE_REGISTRATION: "true"   # enable after initial setup
+      # DISABLE_REGISTRATION: "true" # enable after initial setup
 
       STORAGE_PROVIDER: "local"
       UPLOAD_DIRECTORY: "/uploads"
@@ -24,7 +24,7 @@ services:
       - postiz-config:/config/
       - postiz-uploads:/uploads/
     ports:
-      - 5000:5000
+      - "5000:5000"
     networks:
       - postiz-network
       - temporal-network
@@ -91,6 +91,7 @@ services:
 
   temporal-postgresql:
     image: postgres:16
+    restart: always
     environment:
       POSTGRES_PASSWORD: temporal
       POSTGRES_USER: temporal
@@ -120,19 +121,9 @@ services:
       - temporal-network
     expose:
       - "7233"
-    # You can publish this only if you want to access Temporal externally:
+    # Do NOT publish this port unless you need Temporal externally:
     # ports:
     #   - "7233:7233"
-
-  # Optional UI (handy for debugging)
-  temporal-ui:
-    image: temporalio/ui:2.34.0
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-    networks:
-      - temporal-network
-    ports:
-      - "8080:8080"
 
 volumes:
   postgres-volume:
