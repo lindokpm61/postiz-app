@@ -1,40 +1,38 @@
 services:
   postiz:
-    image: ghcr.io/gitroomhq/postiz-app:latest
+    image: ghcr.io/gitroomhq/postiz-app:v2.12.1
     restart: always
     environment:
+      # Required
       MAIN_URL: "https://postiz.keith-antony.com"
       FRONTEND_URL: "https://postiz.keith-antony.com"
       NEXT_PUBLIC_BACKEND_URL: "https://postiz.keith-antony.com/api"
-      JWT_SECRET: "kjabdckbkco8rrnc909uimckc8"
+      JWT_SECRET: "kA9xPm2vLq8sNw4jRt6yBc3hFe7iDg0zXu5oMl1nVp"
       DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
       REDIS_URL: "redis://postiz-redis:6379"
       BACKEND_INTERNAL_URL: "http://localhost:3000"
 
-      # Required for newer Postiz
+      # IMPORTANT (fixes ::1:7233 / localhost Temporal connection attempts)
       TEMPORAL_ADDRESS: "temporal:7233"
-      RUN_CRON: "true"
-      IS_GENERAL: "true"
-      # DISABLE_REGISTRATION: "true" # enable after initial setup
 
+      # Common toggles (safe defaults)
+      IS_GENERAL: "true"
+      DISABLE_REGISTRATION: "false"
+      RUN_CRON: "true"
+
+      # Storage
       STORAGE_PROVIDER: "local"
       UPLOAD_DIRECTORY: "/uploads"
       NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
+
     volumes:
       - postiz-config:/config/
       - postiz-uploads:/uploads/
-    ports:
-      - "5000:5000"
+
     networks:
       - postiz-network
       - temporal-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`)"
-      - "traefik.http.routers.postiz.entryPoints=https"
-      - "traefik.http.routers.postiz.tls=true"
-      - "traefik.http.routers.postiz.tls.certresolver=letsencrypt"
-      - "traefik.http.services.postiz.loadbalancer.server.port=5000"
+
     depends_on:
       postiz-postgres:
         condition: service_healthy
@@ -43,8 +41,16 @@ services:
       temporal:
         condition: service_started
 
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`)"
+      - "traefik.http.routers.postiz.entryPoints=https"
+      - "traefik.http.routers.postiz.tls=true"
+      - "traefik.http.routers.postiz.tls.certresolver=letsencrypt"
+      - "traefik.http.services.postiz.loadbalancer.server.port=5000"
+
   postiz-postgres:
-    image: postgres:17
+    image: postgres:17-alpine
     restart: always
     environment:
       POSTGRES_PASSWORD: postiz-password
@@ -63,18 +69,18 @@ services:
   postiz-redis:
     image: redis:7.2
     restart: always
+    volumes:
+      - postiz-redis-data:/data
+    networks:
+      - postiz-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 10
-    volumes:
-      - postiz-redis-data:/data
-    networks:
-      - postiz-network
 
   # -----------------------
-  # Temporal Stack (required)
+  # Temporal Stack (NO UI)
   # -----------------------
   temporal-elasticsearch:
     image: elasticsearch:7.17.27
@@ -82,25 +88,28 @@ services:
       - discovery.type=single-node
       - ES_JAVA_OPTS=-Xms256m -Xmx256m
       - xpack.security.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
     networks:
       - temporal-network
+    volumes:
+      - temporal-es-data:/var/lib/elasticsearch/data
     expose:
       - "9200"
-    volumes:
-      - temporal-es-data:/usr/share/elasticsearch/data
 
   temporal-postgresql:
     image: postgres:16
-    restart: always
     environment:
       POSTGRES_PASSWORD: temporal
       POSTGRES_USER: temporal
     networks:
       - temporal-network
-    expose:
-      - "5432"
     volumes:
       - temporal-pg-data:/var/lib/postgresql/data
+    expose:
+      - "5432"
 
   temporal:
     image: temporalio/auto-setup:1.28.1
@@ -117,13 +126,25 @@ services:
       - ES_SEEDS=temporal-elasticsearch
       - ES_VERSION=v7
       - TEMPORAL_NAMESPACE=default
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
     networks:
       - temporal-network
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
     expose:
       - "7233"
-    # Do NOT publish this port unless you need Temporal externally:
-    # ports:
-    #   - "7233:7233"
+
+  temporal-admin-tools:
+    image: temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1
+    depends_on:
+      - temporal
+    environment:
+      - TEMPORAL_ADDRESS=temporal:7233
+      - TEMPORAL_CLI_ADDRESS=temporal:7233
+    networks:
+      - temporal-network
+    stdin_open: true
+    tty: true
 
 volumes:
   postgres-volume:
