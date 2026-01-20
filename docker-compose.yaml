@@ -11,6 +11,7 @@ services:
       REDIS_URL: "redis://postiz-redis:6379"
       BACKEND_INTERNAL_URL: "http://localhost:3000"
 
+      # Temporal
       TEMPORAL_ADDRESS: "temporal:7233"
       RUN_CRON: "true"
       IS_GENERAL: "true"
@@ -69,6 +70,28 @@ services:
       timeout: 3s
       retries: 10
 
+  # -----------------------
+  # Temporal Stack
+  # -----------------------
+
+  # Init container: writes the dynamic config file into the named volume
+  temporal-dynamicconfig-init:
+    image: alpine:3.20
+    restart: "no"
+    command: >
+      sh -lc "
+        mkdir -p /etc/temporal/config/dynamicconfig &&
+        cat > /etc/temporal/config/dynamicconfig/development-sql.yaml <<'YAML'
+frontend.enableUpdateWorkflowExecution:
+  - value: true
+    constraints: {}
+YAML
+      "
+    volumes:
+      - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+    networks:
+      - temporal-network
+
   temporal-elasticsearch:
     image: elasticsearch:7.17.27
     restart: always
@@ -101,38 +124,16 @@ services:
     expose:
       - "5432"
 
-  # ✅ NEW: init container to write dynamic config into a named volume
-  temporal-dynamicconfig-init:
-    image: alpine:3.20
-    restart: "no"
-    networks:
-      - temporal-network
-    volumes:
-      - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
-    command: >
-      sh -lc '
-        mkdir -p /etc/temporal/config/dynamicconfig &&
-        cat > /etc/temporal/config/dynamicconfig/development-sql.yaml << "YAML"
-        frontend.enableUpdateWorkflowExecution:
-          - value: true
-            constraints: {}
-        YAML
-        ;
-        echo "Dynamic config written:";
-        ls -la /etc/temporal/config/dynamicconfig;
-      '
-
   temporal:
     image: temporalio/auto-setup:1.28.1
     restart: always
     depends_on:
+      temporal-dynamicconfig-init:
+        condition: service_completed_successfully
       temporal-postgresql:
         condition: service_healthy
       temporal-elasticsearch:
         condition: service_started
-      # ✅ ensure file is created before temporal starts
-      temporal-dynamicconfig-init:
-        condition: service_completed_successfully
     environment:
       - DB=postgres12
       - DB_PORT=5432
@@ -143,11 +144,13 @@ services:
       - ES_SEEDS=temporal-elasticsearch
       - ES_VERSION=v7
       - TEMPORAL_NAMESPACE=default
+
+      # <-- THIS is the key line
+      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/development-sql.yaml
     networks:
       - temporal-network
     expose:
       - "7233"
-    # ✅ mount dynamic config where Temporal expects it (config/dynamicconfig/...)
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
 
@@ -171,7 +174,6 @@ volumes:
   postiz-uploads:
   temporal-pg-data:
   temporal-es-data:
-  # ✅ NEW volume for dynamic config
   temporal-dynamicconfig:
 
 networks:
