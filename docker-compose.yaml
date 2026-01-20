@@ -36,7 +36,7 @@ services:
         condition: service_healthy
 
   postiz-postgres:
-    image: postgres:14.5
+    image: postgres:17-alpine
     container_name: postiz-postgres
     restart: always
     environment:
@@ -50,8 +50,9 @@ services:
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postiz-user -d postiz-db-local"]
       interval: 10s
-      timeout: 3s
-      retries: 10
+      timeout: 5s
+      retries: 30
+      start_period: 30s
 
   postiz-redis:
     image: redis:7.2
@@ -64,8 +65,9 @@ services:
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
-      timeout: 3s
-      retries: 10
+      timeout: 5s
+      retries: 30
+      start_period: 10s
 
 volumes:
   postgres-volume:
