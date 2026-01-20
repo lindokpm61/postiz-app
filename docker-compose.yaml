@@ -36,6 +36,8 @@ services:
       - "traefik.http.routers.postiz.tls=true"
       - "traefik.http.routers.postiz.tls.certresolver=letsencrypt"
       - "traefik.http.services.postiz.loadbalancer.server.port=5000"
+    networks:
+      coolify: {}
 
   postiz-postgres:
     image: postgres:17-alpine
@@ -51,6 +53,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
+    networks:
+      coolify: {}
 
   postiz-redis:
     image: redis:7.2
@@ -62,8 +66,9 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
+    networks:
+      coolify: {}
 
-  # Init container: writes the dynamic config file into the named volume
   temporal-dynamicconfig-init:
     image: alpine:3.20
     restart: "no"
@@ -80,6 +85,8 @@ services:
       ls -la /etc/temporal/config/dynamicconfig
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
+    networks:
+      coolify: {}
 
   temporal-elasticsearch:
     image: elasticsearch:7.17.27
@@ -90,6 +97,8 @@ services:
       - xpack.security.enabled=false
     volumes:
       - temporal-es-data:/usr/share/elasticsearch/data
+    networks:
+      coolify: {}
 
   temporal-postgresql:
     image: postgres:16
@@ -104,6 +113,8 @@ services:
       interval: 10s
       timeout: 3s
       retries: 10
+    networks:
+      coolify: {}
 
   temporal:
     image: temporalio/auto-setup:1.28.1
@@ -129,6 +140,10 @@ services:
       - DYNAMIC_CONFIG_FILE_POLL_INTERVAL=10s
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig:ro
+    networks:
+      coolify:
+        aliases:
+          - temporal
 
   temporal-admin-tools:
     image: temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1
@@ -140,6 +155,8 @@ services:
       - TEMPORAL_CLI_ADDRESS=temporal:7233
     stdin_open: true
     tty: true
+    networks:
+      coolify: {}
 
 volumes:
   postgres-volume:
@@ -149,3 +166,8 @@ volumes:
   temporal-pg-data:
   temporal-es-data:
   temporal-dynamicconfig:
+
+networks:
+  coolify:
+    external: true
+    name: coolify
