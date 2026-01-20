@@ -1,37 +1,32 @@
 services:
   frontend:
-    image: ghcr.io/gitroomhq/postiz-app:latest
+    image: 'ghcr.io/gitroomhq/postiz-app:latest'
     container_name: postiz-frontend
     restart: always
     environment:
-      MAIN_URL: "https://postiz.keith-antony.com"
-      FRONTEND_URL: "https://postiz.keith-antony.com"
-      NEXT_PUBLIC_BACKEND_URL: "https://postiz.keith-antony.com/api"
-      JWT_SECRET: "klbnc0ncpmpclcohciag877bcoihcx0qu"
-
-      DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
-      REDIS_URL: "redis://postiz-redis:6379"
-
-      # IMPORTANT: point to backend service, not localhost
-      BACKEND_INTERNAL_URL: "http://backend:3000"
-
-      IS_GENERAL: "true"
-      STORAGE_PROVIDER: "local"
-      UPLOAD_DIRECTORY: "/uploads"
-      NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
+      MAIN_URL: 'https://postiz.keith-antony.com'
+      FRONTEND_URL: 'https://postiz.keith-antony.com'
+      NEXT_PUBLIC_BACKEND_URL: 'https://postiz.keith-antony.com/api'
+      JWT_SECRET: klbnc0ncpmpclcohciag877bcoihcx0qu
+      DATABASE_URL: 'postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local'
+      REDIS_URL: 'redis://postiz-redis:6379'
+      BACKEND_INTERNAL_URL: 'http://backend:3000'
+      IS_GENERAL: 'true'
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
     volumes:
-      - postiz-config:/config/
-      - postiz-uploads:/uploads/
+      - 'postiz-config:/config/'
+      - 'postiz-uploads:/uploads/'
     networks:
       - coolify
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`)"
-      - "traefik.http.routers.postiz.entryPoints=https"
-      - "traefik.http.routers.postiz.tls=true"
-      - "traefik.http.routers.postiz.tls.certresolver=letsencrypt"
-      # Frontend is listening on 4200 in your log
-      - "traefik.http.services.postiz.loadbalancer.server.port=4200"
+      - traefik.enable=true
+      - traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`) && !PathPrefix(`/api`)
+      - traefik.http.routers.postiz.entryPoints=https
+      - traefik.http.routers.postiz.tls=true
+      - traefik.http.routers.postiz.tls.certresolver=letsencrypt
+      - traefik.http.services.postiz.loadbalancer.server.port=4200
     depends_on:
       backend:
         condition: service_started
@@ -45,25 +40,21 @@ services:
         condition: service_started
 
   backend:
-    image: ghcr.io/gitroomhq/postiz-app:latest
+    image: 'ghcr.io/gitroomhq/postiz-app:latest'
     container_name: postiz-backend
     restart: always
     environment:
-      MAIN_URL: "https://postiz.keith-antony.com"
-      FRONTEND_URL: "https://postiz.keith-antony.com"
-      NEXT_PUBLIC_BACKEND_URL: "https://postiz.keith-antony.com/api"
-      JWT_SECRET: "klbnc0ncpmpclcohciag877bcoihcx0qu"
-
-      DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
-      REDIS_URL: "redis://postiz-redis:6379"
-
-      # IMPORTANT: point to temporal service, not localhost
-      TEMPORAL_ADDRESS: "temporal:7233"
-
-      IS_GENERAL: "true"
-      STORAGE_PROVIDER: "local"
-      UPLOAD_DIRECTORY: "/uploads"
-      NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
+      MAIN_URL: 'https://postiz.keith-antony.com'
+      FRONTEND_URL: 'https://postiz.keith-antony.com'
+      NEXT_PUBLIC_BACKEND_URL: 'https://postiz.keith-antony.com/api'
+      JWT_SECRET: klbnc0ncpmpclcohciag877bcoihcx0qu
+      DATABASE_URL: 'postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local'
+      REDIS_URL: 'redis://postiz-redis:6379'
+      TEMPORAL_ADDRESS: 'temporal:7233'
+      IS_GENERAL: 'true'
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
     depends_on:
       temporal:
         condition: service_healthy
@@ -72,22 +63,33 @@ services:
       postiz-redis:
         condition: service_healthy
     volumes:
-      - postiz-config:/config/
-      - postiz-uploads:/uploads/
+      - 'postiz-config:/config/'
+      - 'postiz-uploads:/uploads/'
     networks:
       - coolify
-    command: ["pnpm","--filter","postiz-backend","start"]
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.postiz-api.rule=Host(`postiz.keith-antony.com`) && PathPrefix(`/api`)
+      - traefik.http.routers.postiz-api.entryPoints=https
+      - traefik.http.routers.postiz-api.tls=true
+      - traefik.http.routers.postiz-api.tls.certresolver=letsencrypt
+      - traefik.http.services.postiz-api.loadbalancer.server.port=3000
+      - traefik.http.middlewares.postiz-api-stripprefix.stripprefix.prefixes=/api
+      - traefik.http.routers.postiz-api.middlewares=postiz-api-stripprefix
+    command:
+      - pnpm
+      - '--filter'
+      - postiz-backend
+      - start
 
   orchestrator:
-    image: ghcr.io/gitroomhq/postiz-app:latest
+    image: 'ghcr.io/gitroomhq/postiz-app:latest'
     container_name: postiz-orchestrator
     restart: always
     environment:
-      DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
-      REDIS_URL: "redis://postiz-redis:6379"
-
-      # IMPORTANT: point to temporal service, not localhost
-      TEMPORAL_ADDRESS: "temporal:7233"
+      DATABASE_URL: 'postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local'
+      REDIS_URL: 'redis://postiz-redis:6379'
+      TEMPORAL_ADDRESS: 'temporal:7233'
     networks:
       - coolify
     depends_on:
@@ -97,10 +99,14 @@ services:
         condition: service_healthy
       postiz-redis:
         condition: service_healthy
-    command: ["pnpm","--filter","postiz-orchestrator","start"]
+    command:
+      - pnpm
+      - '--filter'
+      - postiz-orchestrator
+      - start
 
   postiz-postgres:
-    image: postgres:17-alpine
+    image: 'postgres:17-alpine'
     container_name: postiz-postgres
     restart: always
     environment:
@@ -108,33 +114,38 @@ services:
       POSTGRES_USER: postiz-user
       POSTGRES_DB: postiz-db-local
     volumes:
-      - postgres-volume:/var/lib/postgresql/data
+      - 'postgres-volume:/var/lib/postgresql/data'
     networks:
       - coolify
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postiz-user -d postiz-db-local"]
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U postiz-user -d postiz-db-local'
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 30s
 
   postiz-redis:
-    image: redis:7.2
+    image: 'redis:7.2'
     container_name: postiz-redis
     restart: always
     volumes:
-      - postiz-redis-data:/data
+      - 'postiz-redis-data:/data'
     networks:
       - coolify
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        - CMD
+        - redis-cli
+        - ping
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 10s
 
   temporal:
-    image: temporalio/auto-setup:1.28.1
+    image: 'temporalio/auto-setup:1.28.1'
     container_name: temporal
     restart: always
     environment:
@@ -155,14 +166,20 @@ services:
     networks:
       - coolify
     healthcheck:
-      test: ["CMD", "tctl", "--address", "temporal:7233", "cluster", "health"]
+      test:
+        - CMD
+        - tctl
+        - '--address'
+        - 'temporal:7233'
+        - cluster
+        - health
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 60s
 
   temporal-postgresql:
-    image: postgres:13-alpine
+    image: 'postgres:13-alpine'
     container_name: temporal-postgresql
     restart: always
     environment:
@@ -170,42 +187,46 @@ services:
       POSTGRES_PASSWORD: temporal
       POSTGRES_DB: temporal
     volumes:
-      - temporal-postgres-data:/var/lib/postgresql/data
+      - 'temporal-postgres-data:/var/lib/postgresql/data'
     networks:
       - coolify
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U temporal -d temporal"]
+      test:
+        - CMD-SHELL
+        - 'pg_isready -U temporal -d temporal'
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 30s
 
   temporal-elasticsearch:
-    image: elasticsearch:7.17.10
+    image: 'elasticsearch:7.17.10'
     container_name: temporal-elasticsearch
     restart: always
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
     volumes:
-      - temporal-elasticsearch-data:/usr/share/elasticsearch/data
+      - 'temporal-elasticsearch-data:/usr/share/elasticsearch/data'
     networks:
       - coolify
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test:
+        - CMD-SHELL
+        - 'curl -s http://localhost:9200/_cluster/health | grep -q ''"status":"green"\|"status":"yellow"'''
       interval: 10s
       timeout: 5s
       retries: 30
       start_period: 60s
 
 volumes:
-  postiz-config:
-  postiz-uploads:
-  postgres-volume:
-  postiz-redis-data:
-  temporal-postgres-data:
-  temporal-elasticsearch-data:
+  postiz-config: null
+  postiz-uploads: null
+  postgres-volume: null
+  postiz-redis-data: null
+  temporal-postgres-data: null
+  temporal-elasticsearch-data: null
 
 networks:
   coolify:
