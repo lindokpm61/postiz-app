@@ -1,32 +1,27 @@
-name: postiz
 services:
   postiz:
-    image: ghcr.io/gitroomhq/postiz-app:v2.12.1
+    image: ghcr.io/gitroomhq/postiz-app:latest
+    container_name: postiz
     restart: always
     environment:
       MAIN_URL: "https://postiz.keith-antony.com"
       FRONTEND_URL: "https://postiz.keith-antony.com"
       NEXT_PUBLIC_BACKEND_URL: "https://postiz.keith-antony.com/api"
-      JWT_SECRET: "kA9xPm2vLq8sNw4jRt6yBc3hFe7iDg0zXu5oMl1nVp"
+      JWT_SECRET: "klbnc0ncpmpclcohciag877bcoihcx0qu"
+
       DATABASE_URL: "postgresql://postiz-user:postiz-password@postiz-postgres:5432/postiz-db-local"
       REDIS_URL: "redis://postiz-redis:6379"
       BACKEND_INTERNAL_URL: "http://localhost:3000"
-      TEMPORAL_ADDRESS: "temporal:7233"
-      RUN_CRON: "true"
       IS_GENERAL: "true"
+
       STORAGE_PROVIDER: "local"
       UPLOAD_DIRECTORY: "/uploads"
       NEXT_PUBLIC_UPLOAD_DIRECTORY: "/uploads"
     volumes:
       - postiz-config:/config/
       - postiz-uploads:/uploads/
-    depends_on:
-      postiz-postgres:
-        condition: service_healthy
-      postiz-redis:
-        condition: service_healthy
-      temporal:
-        condition: service_started
+    networks:
+      - coolify
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`)"
@@ -34,11 +29,15 @@ services:
       - "traefik.http.routers.postiz.tls=true"
       - "traefik.http.routers.postiz.tls.certresolver=letsencrypt"
       - "traefik.http.services.postiz.loadbalancer.server.port=5000"
-    networks:
-      - coolify
+    depends_on:
+      postiz-postgres:
+        condition: service_healthy
+      postiz-redis:
+        condition: service_healthy
 
   postiz-postgres:
-    image: postgres:17-alpine
+    image: postgres:14.5
+    container_name: postiz-postgres
     restart: always
     environment:
       POSTGRES_PASSWORD: postiz-password
@@ -46,130 +45,33 @@ services:
       POSTGRES_DB: postiz-db-local
     volumes:
       - postgres-volume:/var/lib/postgresql/data
+    networks:
+      - coolify
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postiz-user -d postiz-db-local"]
       interval: 10s
       timeout: 3s
       retries: 10
-    networks:
-      - coolify
 
   postiz-redis:
     image: redis:7.2
+    container_name: postiz-redis
     restart: always
     volumes:
       - postiz-redis-data:/data
+    networks:
+      - coolify
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 10
-    networks:
-      - coolify
-
-  temporal-dynamicconfig-init:
-    image: alpine:3.20
-    restart: "no"
-    entrypoint: ["/bin/sh", "-lc"]
-    command: |
-      set -e
-      mkdir -p /etc/temporal/config/dynamicconfig
-      cat > /etc/temporal/config/dynamicconfig/development-sql.yaml <<'YAML'
-      frontend.enableUpdateWorkflowExecution:
-        - value: true
-          constraints: {}
-      YAML
-      echo "Wrote dynamic config:"
-      cat /etc/temporal/config/dynamicconfig/development-sql.yaml
-    volumes:
-      - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig
-    networks:
-      - coolify
-
-  temporal-elasticsearch:
-    image: elasticsearch:7.17.27
-    restart: always
-    environment:
-      - discovery.type=single-node
-      - ES_JAVA_OPTS=-Xms256m -Xmx256m
-      - xpack.security.enabled=false
-    volumes:
-      - temporal-es-data:/usr/share/elasticsearch/data
-    healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
-      interval: 15s
-      timeout: 10s
-      retries: 20
-      start_period: 30s
-    networks:
-      - coolify
-
-  temporal-postgresql:
-    image: postgres:16
-    restart: always
-    environment:
-      POSTGRES_PASSWORD: temporal
-      POSTGRES_USER: temporal
-    volumes:
-      - temporal-pg-data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U temporal"]
-      interval: 10s
-      timeout: 3s
-      retries: 10
-    networks:
-      - coolify
-
-  temporal:
-    image: temporalio/auto-setup:1.28.1
-    restart: always
-    depends_on:
-      temporal-dynamicconfig-init:
-        condition: service_completed_successfully
-      temporal-postgresql:
-        condition: service_healthy
-      temporal-elasticsearch:
-        condition: service_healthy
-    environment:
-      - DB=postgres12
-      - DB_PORT=5432
-      - POSTGRES_USER=temporal
-      - POSTGRES_PWD=temporal
-      - POSTGRES_SEEDS=temporal-postgresql
-      - ENABLE_ES=true
-      - ES_SEEDS=temporal-elasticsearch
-      - ES_VERSION=v7
-      - TEMPORAL_NAMESPACE=default
-      - DYNAMIC_CONFIG_FILE_PATH=/etc/temporal/config/dynamicconfig/development-sql.yaml
-      - DYNAMIC_CONFIG_FILE_POLL_INTERVAL=10s
-    volumes:
-      - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig:ro
-    networks:
-      coolify:
-        aliases:
-          - temporal
-
-  temporal-admin-tools:
-    image: temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1
-    restart: always
-    depends_on:
-      - temporal
-    environment:
-      - TEMPORAL_ADDRESS=temporal:7233
-      - TEMPORAL_CLI_ADDRESS=temporal:7233
-    stdin_open: true
-    tty: true
-    networks:
-      - coolify
 
 volumes:
   postgres-volume:
   postiz-redis-data:
   postiz-config:
   postiz-uploads:
-  temporal-pg-data:
-  temporal-es-data:
-  temporal-dynamicconfig:
 
 networks:
   coolify:
