@@ -26,7 +26,7 @@ services:
       postiz-redis:
         condition: service_healthy
       temporal:
-        condition: service_healthy
+        condition: service_started
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`)"
@@ -96,10 +96,11 @@ services:
     volumes:
       - temporal-es-data:/usr/share/elasticsearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -q '\"status\":\"green\"\\|\"status\":\"yellow\"'"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
       interval: 15s
       timeout: 10s
       retries: 20
+      start_period: 30s
     networks:
       - coolify
 
@@ -143,12 +144,6 @@ services:
       - DYNAMIC_CONFIG_FILE_POLL_INTERVAL=10s
     volumes:
       - temporal-dynamicconfig:/etc/temporal/config/dynamicconfig:ro
-    healthcheck:
-      test: ["CMD", "tctl", "--address", "127.0.0.1:7233", "cluster", "health"]
-      interval: 15s
-      timeout: 10s
-      retries: 40
-      start_period: 60s
     networks:
       coolify:
         aliases:
@@ -158,8 +153,7 @@ services:
     image: temporalio/admin-tools:1.28.1-tctl-1.18.4-cli-1.4.1
     restart: always
     depends_on:
-      temporal:
-        condition: service_healthy
+      - temporal
     environment:
       - TEMPORAL_ADDRESS=temporal:7233
       - TEMPORAL_CLI_ADDRESS=temporal:7233
