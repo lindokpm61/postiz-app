@@ -5,9 +5,9 @@ services:
     restart: always
     environment:
       # Core URLs
-      MAIN_URL: 'https://postiz.keith-antony.com'
-      FRONTEND_URL: 'https://postiz.keith-antony.com'
-      NEXT_PUBLIC_BACKEND_URL: 'https://postiz.keith-antony.com/api'
+      MAIN_URL: 'https://postiz.andro-prime.com'
+      FRONTEND_URL: 'https://postiz.andro-prime.com'
+      NEXT_PUBLIC_BACKEND_URL: 'https://postiz.andro-prime.com/api'
       BACKEND_INTERNAL_URL: 'http://backend:3000'
       
       # Security
@@ -66,9 +66,9 @@ services:
     restart: always
     environment:
       # Core URLs
-      MAIN_URL: 'https://postiz.keith-antony.com'
-      FRONTEND_URL: 'https://postiz.keith-antony.com'
-      NEXT_PUBLIC_BACKEND_URL: 'https://postiz.keith-antony.com/api'
+      MAIN_URL: 'https://postiz.andro-prime.com'
+      FRONTEND_URL: 'https://postiz.andro-prime.com'
+      NEXT_PUBLIC_BACKEND_URL: 'https://postiz.andro-prime.com/api'
       
       # Security
       JWT_SECRET: '${SERVICE_PASSWORD_JWTSECRET}'
