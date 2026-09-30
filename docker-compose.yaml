@@ -43,7 +43,7 @@ services:
       - coolify
     labels:
       - traefik.enable=true
-      - traefik.http.routers.postiz.rule=Host(`postiz.keith-antony.com`) && !PathPrefix(`/api`)
+      - traefik.http.routers.postiz.rule=Host(`postiz.andro-prime.com`) && !PathPrefix(`/api`)
       - traefik.http.routers.postiz.entryPoints=https
       - traefik.http.routers.postiz.tls=true
       - traefik.http.routers.postiz.tls.certresolver=letsencrypt
@@ -193,7 +193,7 @@ services:
       - coolify
     labels:
       - traefik.enable=true
-      - traefik.http.routers.postiz-api.rule=Host(`postiz.keith-antony.com`) && PathPrefix(`/api`)
+      - traefik.http.routers.postiz-api.rule=Host(`postiz.andro-prime.com`) && PathPrefix(`/api`)
       - traefik.http.routers.postiz-api.entryPoints=https
       - traefik.http.routers.postiz-api.tls=true
       - traefik.http.routers.postiz-api.tls.certresolver=letsencrypt
