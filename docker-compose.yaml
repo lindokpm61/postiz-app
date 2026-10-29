@@ -268,6 +268,63 @@ services:
       - postiz-orchestrator
       - start
 
+  # Restarts the orchestrator when it is running but no Postiz worker is
+  # listening on Temporal's `main` queue (the 16 Oct and 29 Oct 2026 stalls:
+  # container up, /health fine, nothing posting). depends_on cannot catch this,
+  # because a single-container restart ignores it, and the stalled orchestrator
+  # never exits, so restart: always never fires.
+  # Needs the Docker socket (root on the server). It only ever restarts the
+  # orchestrator of this same compose project, and only when Temporal itself
+  # answers: if Temporal is down, restarting the orchestrator would not help.
+  postiz-watchdog:
+    image: 'docker:27-cli'
+    container_name: postiz-watchdog
+    restart: always
+    environment:
+      WATCHDOG_START_DELAY: '300'
+      WATCHDOG_INTERVAL: '120'
+      WATCHDOG_MISSES: '2'
+    volumes:
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    networks:
+      - coolify
+    depends_on:
+      temporal:
+        condition: service_healthy
+    entrypoint:
+      - /bin/sh
+      - '-c'
+      - |
+        PROJECT=$$(docker inspect "$$(hostname)" --format '{{ index .Config.Labels "com.docker.compose.project" }}')
+        find() { docker ps -q --filter "label=com.docker.compose.project=$$PROJECT" --filter "label=com.docker.compose.service=$$1" | head -n 1; }
+        echo "[watchdog] project=$$PROJECT; first check in $${WATCHDOG_START_DELAY}s"
+        sleep "$$WATCHDOG_START_DELAY"
+        misses=0
+        while true; do
+          T=$$(find temporal)
+          O=$$(find orchestrator)
+          if [ -z "$$T" ] || [ -z "$$O" ]; then
+            echo "[watchdog] temporal or orchestrator not running; nothing to do"
+            misses=0
+          elif ! out=$$(docker exec "$$T" tctl --address temporal:7233 taskqueue describe --taskqueue main --taskqueuetype activity 2>&1); then
+            echo "[watchdog] Temporal not answering; not restarting the orchestrator"
+            misses=0
+          elif echo "$$out" | grep -q '@'; then
+            misses=0
+          else
+            misses=$$((misses + 1))
+            echo "[watchdog] no worker on queue main ($$misses of $$WATCHDOG_MISSES)"
+            if [ "$$misses" -ge "$$WATCHDOG_MISSES" ]; then
+              echo "[watchdog] restarting the orchestrator"
+              docker restart "$$O"
+              misses=0
+              sleep "$$WATCHDOG_START_DELAY"
+              continue
+            fi
+          fi
+          sleep "$$WATCHDOG_INTERVAL"
+        done
+
   postiz-postgres:
     image: 'postgres:17-alpine'
     container_name: postiz-postgres
